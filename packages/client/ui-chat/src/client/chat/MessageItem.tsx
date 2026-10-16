@@ -55,6 +55,7 @@ function failureMessage(
   if (code === 'ACCOUNT_SIGNED_OUT') return t('message.failure.accountSignedOut')
   if (code === 'ACCOUNT_SIGN_IN_REQUIRED') return t('message.failure.accountSignInRequired')
   if (code === 'QUOTA' || code === 'ACCOUNT_QUOTA') return t('message.failure.quota')
+  if (code === 'RATE_LIMIT') return t('message.failure.rateLimit')
   return code === 'AUTH' ? t('message.failure.auth') : message
 }
 

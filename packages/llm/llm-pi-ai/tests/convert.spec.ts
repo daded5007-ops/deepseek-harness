@@ -902,6 +902,11 @@ describe('mapStopReason / mapUsage', () => {
       .toMatchObject({ kind: 'error', failure: { code: 'AUTH' } })
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 429: rate limit' })))
       .toMatchObject({ kind: 'error', failure: { code: 'RATE_LIMIT' } })
+    // HTTP 402 is a prepaid balance rejection, never an invalid key.
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 402: Insufficient Balance' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 402: You have run out of balance' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 429: insufficient_quota' })))
       .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
     expect(mapStopReason(assistant({

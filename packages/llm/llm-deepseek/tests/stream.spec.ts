@@ -126,6 +126,8 @@ describe('SSE framing and provider failures', () => {
     [undefined, { type: 'invalid_request_error' }, 'INVALID_REQUEST'], [undefined, {}, 'SERVER'],
     [400, { message: 'maximum context length exceeded' }, 'CONTEXT_WINDOW_EXCEEDED'],
     [400, { message: 'insufficient balance' }, 'QUOTA'],
+    // A 402 balance rejection is QUOTA even with auth-flavored body wording.
+    [402, { type: 'authentication_error', message: 'Insufficient Balance' }, 'QUOTA'],
   ])('classifies status %s and error %j', (status, error, code) => {
     expect(providerError({ error }, status)).toMatchObject({ code })
   })

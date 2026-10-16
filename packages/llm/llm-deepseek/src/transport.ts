@@ -26,8 +26,11 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   const type = typeof error.type === 'string' ? error.type : ''
   const detail = `${type} ${typeof error.code === 'string' ? error.code : ''} ${message}`
   let code: string
-  if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(type)) code = 'AUTH'
-  else if (isQuotaExceededError(detail) || status === 402) code = 'QUOTA'
+  // HTTP 402 is authoritative: a prepaid balance rejection is QUOTA even if
+  // the body carries auth-flavored wording — it must never surface as AUTH.
+  if (status === 402) code = 'QUOTA'
+  else if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(type)) code = 'AUTH'
+  else if (isQuotaExceededError(detail)) code = 'QUOTA'
   else if (status === 429 || type === 'rate_limit_error') code = 'RATE_LIMIT'
   else if (isContextWindowExceededError(detail)) code = 'CONTEXT_WINDOW_EXCEEDED'
   else if (status === 400 || status === 413 || type === 'invalid_request_error') code = 'INVALID_REQUEST'

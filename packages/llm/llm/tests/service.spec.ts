@@ -136,6 +136,8 @@ describe('LlmRuntime', () => {
       'account balance depleted',
       'usage-limit-exceeded',
       'out of credits',
+      'out of balance',
+      'You have run out of balance',
       'OpenAI API error (429): You exceeded your current quota, please check your plan and billing details.',
     ]) expect(isQuotaExceededError(detail)).toBe(true)
     expect(isQuotaExceededError('HTTP 429: rate limit reached')).toBe(false)

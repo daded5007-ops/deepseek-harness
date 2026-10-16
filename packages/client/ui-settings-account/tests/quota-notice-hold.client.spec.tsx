@@ -29,7 +29,7 @@ import { en, zh } from '../src/client/locales.ts'
 usePinnedBrowserLanguages('en')
 
 const SID = 'session-1' as SessionId
-const NOTICE = 'Request quota exhausted.'
+const NOTICE = 'Request quota exhausted. Your API key is still valid — top up your balance on the DeepSeek platform, then try again.'
 const disposers: Array<() => Promise<void>> = []
 const references: SessionReference[] = []
 

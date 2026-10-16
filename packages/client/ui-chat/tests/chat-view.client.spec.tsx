@@ -2124,17 +2124,20 @@ describe('ChatView', () => {
   it('renders every terminal failure inline with neutral quota copy and no transient notice', () => {
     const h = makeHarness({ nodes: [
       user(1, 'try'), turnError(2, 'AUTH'), turnError(3), turnError(4, 'QUOTA'), turnError(5, 'ACCOUNT_QUOTA'),
+      turnError(6, 'RATE_LIMIT'),
     ] })
     const view = render(<h.ChatView {...h.props} />)
     const statuses = view.getAllByRole('status')
     expect(statuses.map(status => status.textContent)).toEqual([
       '本轮运行失败API 密钥无效AUTH',
       '本轮运行失败plugin exploded',
-      '本轮运行失败当前请求的额度已用尽QUOTA',
-      '本轮运行失败当前请求的额度已用尽ACCOUNT_QUOTA',
+      '本轮运行失败当前请求的额度已用尽，API 密钥仍然有效。请前往 DeepSeek 开放平台充值余额后重试。QUOTA',
+      '本轮运行失败当前请求的额度已用尽，API 密钥仍然有效。请前往 DeepSeek 开放平台充值余额后重试。ACCOUNT_QUOTA',
+      '本轮运行失败请求发送过于频繁，已达到速率上限。请稍后再试。RATE_LIMIT',
     ])
     // The transient notice is the frame-wide host's job; the failure row keeps
-    // neither a recharge affordance nor a toast of its own.
+    // neither a recharge affordance nor a toast of its own (the quota billing
+    // hint travels in the row copy itself).
     expect(view.queryByRole('alert')).toBeNull()
     expect(view.queryByRole('dialog')).toBeNull()
     expect(view.queryByRole('button', { name: '去充值' })).toBeNull()

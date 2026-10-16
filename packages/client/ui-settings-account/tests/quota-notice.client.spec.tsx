@@ -22,7 +22,7 @@ afterEach(() => {
 })
 
 /** Notice copy supplied by the Chat-owned host; this entry never restates it. */
-const noticeMessage = 'Request quota exhausted.'
+const noticeMessage = 'Request quota exhausted. Your API key is still valid — top up your balance on the DeepSeek platform, then try again.'
 
 function snapshot(status?: 'signed-out' | 'credential-stored'): AccountSnapshot {
   const view: AccountView = { status: status ?? 'signed-out', attempt: null, links: { usageUrl: '', topUpUrl: '' } }

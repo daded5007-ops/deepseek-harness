@@ -20,7 +20,9 @@ export function QuotaNoticeHost({ useNotice, dismissNotice, keepNoticeOpen, rend
   return (
     <Fragment key={`quota-notice-${String(notice.seq)}`}>
       {renderSlotChain('shell.quota-notice', owner, {
-        fallback: <Toast text={owner.message} icon={<IconWarningOutlineRegular size={18} />} onDone={dismissNotice} />,
+        // The quota copy now names the billing fix, so hold the banner long
+        // enough to read it; the toast hold otherwise defaults to 3s.
+        fallback: <Toast text={owner.message} icon={<IconWarningOutlineRegular size={18} />} holdMs={6000} onDone={dismissNotice} />,
       })}
     </Fragment>
   )

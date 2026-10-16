@@ -1,3 +1,3 @@
 - status:
-  - text: This turn failedRequest quota exhausted.
+  - text: This turn failedRequest quota exhausted. Your API key is still valid — top up your balance on the DeepSeek platform, then try again.
   - code: ACCOUNT_QUOTA

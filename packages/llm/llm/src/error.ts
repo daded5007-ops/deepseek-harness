@@ -99,7 +99,7 @@ export function isQuotaExceededError(detail: string): boolean {
     || /\b(?:quota|usage[\s_-]+limit)[\s_-]+(?:exceeded|exhausted|reached)\b/i.test(detail)
     || /\bexceed(?:ed|s)?[\s_-]+(?:(?:your|the)[\s_-]+)?(?:current[\s_-]+)?quota\b/i.test(detail)
     || /\b(?:balance|credits?)[\s_-]+(?:exhausted|depleted)\b/i.test(detail)
-    || /\bout[\s_-]+of[\s_-]+(?:credits?|budget)\b/i.test(detail)
+    || /\bout[\s_-]+of[\s_-]+(?:credits?|budget|balance|quota)\b/i.test(detail)
 }
 
 /**
