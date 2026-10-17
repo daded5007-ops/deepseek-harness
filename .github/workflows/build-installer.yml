@@ -1,0 +1,124 @@
+name: Build Official Windows Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build (branch, tag, or SHA)'
+        required: true
+        default: 'master'
+        type: string
+
+env:
+  CI: 'true'
+
+jobs:
+  build-installer:
+    name: Build official unsigned installer (win-x64)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      DSH_DESKTOP_APP_ID: 'com.deepseek.harness'
+      DSH_DESKTOP_AUTO_UPDATE_ENV: 'test'
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
+      DSH_DESKTOP_UNSIGNED: '1'
+      DOWNLOAD_TEST_ORIGIN: ${{ secrets.DOWNLOAD_TEST_ORIGIN || 'https://example.com' }}
+      DOWNLOAD_TEST_RELEASE_ID: ${{ secrets.DOWNLOAD_TEST_RELEASE_ID || '0123456789abcdef0123456789abcdef' }}
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: ${{ secrets.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN || 'https://example.com' }}
+    steps:
+      - name: Checkout requested ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Verify 17 fix files present
+        run: |
+          $expected = @(
+            'apps/web/tests/expected/quota-notice/account_quota.expected.md',
+            'apps/web/tests/expected/quota-notice/quota.expected.md',
+            'apps/web/tests/live-interactions.e2e.ts',
+            'packages/client/ui-chat/src/client/chat/MessageItem.tsx',
+            'packages/client/ui-chat/src/client/chat/QuotaNoticeHost.tsx',
+            'packages/client/ui-chat/src/client/locale.ts',
+            'packages/client/ui-chat/tests/chat-view.client.spec.tsx',
+            'packages/client/ui-chat/tests/quota-notice.client.spec.tsx',
+            'packages/client/ui-settings-account/tests/apply.client.spec.ts',
+            'packages/client/ui-settings-account/tests/quota-notice-hold.client.spec.tsx',
+            'packages/client/ui-settings-account/tests/quota-notice.client.spec.tsx',
+            'packages/llm/llm-deepseek/src/transport.ts',
+            'packages/llm/llm-deepseek/tests/stream.spec.ts',
+            'packages/llm/llm-pi-ai/src/stream.ts',
+            'packages/llm/llm-pi-ai/tests/convert.spec.ts',
+            'packages/llm/llm/src/error.ts',
+            'packages/llm/llm/tests/service.spec.ts'
+          )
+          $missing = @($expected | Where-Object { -not (Test-Path $_) })
+          if ($missing.Count -ne 0) { throw ('missing fix files: ' + ($missing -join ', ')) }
+          'all 17 fix files present'
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+
+      - name: Enable pnpm 11.7.0 via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+          node --version
+          pnpm --version
+
+      - name: Install VC++ runtimes
+        run: choco install vcredist-all -y --no-progress
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write apps/desktop/.env.windows
+        run: |
+          $lines = @(
+            'DSH_DESKTOP_APP_ID=com.deepseek.harness',
+            'DSH_DESKTOP_AUTO_UPDATE_ENV=test',
+            "DOWNLOAD_TEST_ORIGIN=$env:DOWNLOAD_TEST_ORIGIN",
+            "DOWNLOAD_TEST_RELEASE_ID=$env:DOWNLOAD_TEST_RELEASE_ID",
+            "DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=$env:DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN",
+            'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN=https://download.deepseek.com',
+            'DSH_DESKTOP_MANDATORY_UPDATE_CONFIG={"allowedAuthOrigins":["https://login.example.com"]}',
+            'DSH_DESKTOP_WINDOWS_CER_FILE=',
+            'DSH_DESKTOP_WINDOWS_SIGNTOOL=',
+            'DSH_DESKTOP_WINDOWS_KEY_CONTAINER=',
+            'DSH_DESKTOP_WINDOWS_TOKEN_PIN=',
+            'DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY=4'
+          )
+          Set-Content -Path 'apps/desktop/.env.windows' -Value $lines -Encoding utf8
+          'wrote apps/desktop/.env.windows'
+
+      - name: Build official
+        run: pnpm run build:official
+
+      - name: Verify new quota message in built locale
+        run: |
+          $file = 'packages/client/ui-chat/lib/types/client/locale.js'
+          $hit = Select-String -Path $file -Pattern 'Your API key is still valid' | Select-Object -First 1
+          if (-not $hit) { throw "new quota message missing in $file" }
+          "line $($hit.LineNumber): $($hit.Line.Trim())"
+
+      - name: Package Windows x64 unsigned
+        run: pnpm run package:desktop:win:x64:unsigned
+
+      - name: List unsigned artifacts
+        run: |
+          $dir = 'apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts'
+          if (-not (Test-Path $dir)) { throw "missing $dir" }
+          Get-ChildItem $dir
+
+      - name: Upload unsigned installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-harness-win-x64-unsigned-${{ github.run_number }}
+          path: apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/*.exe
+          retention-days: 14
+          if-no-files-found: error
